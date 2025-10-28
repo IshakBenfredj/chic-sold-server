@@ -68,23 +68,101 @@ exports.getOrderByNumber = async (req, res) => {
 };
 
 // Create new order
+// exports.createOrder = async (req, res) => {
+//     try {
+//         const {
+//             customerInfo,
+//             items,
+//             deliveryPrice
+//         } = req.body;
+
+//         console.log('body',req.body)
+
+//         if (!customerInfo || !items.length || !deliveryPrice) {
+//             return res.json({ message: 'مطلوب معلومات العميل والعناصر' });
+//         }
+
+//         const { fullName, phone, state, city, deliveryType } = customerInfo;
+//         if (!fullName || !phone || !state || !deliveryType) {
+//             return res.json({ message: 'جميع حقول معلومات العميل مطلوبة' });
+//         }
+
+//         let totalAmount = 0;
+//         for (const item of items) {
+//             const product = await Product.findById(item.product);
+            
+//             if (!product) {
+//                 return res.json({ message: `المنتج غير موجود: ${item.product}` });
+//             }
+
+//             if (!product.isActive) {
+//                 return res.json({ message: `المنتج غير متاح: ${product.title}` });
+//             }
+
+//             if (product.quantity < item.quantity) {
+//                 return res.json({ 
+//                     message: `الكمية غير كافية للمنتج: ${product.title}. المتاح: ${product.quantity}, المطلوب: ${item.quantity}` 
+//                 });
+//             }
+
+//             if (!product.availableSizes.includes(item.size)) {
+//                 return res.json({ 
+//                     message: `المقاس غير صالح للمنتج: ${product.title}. المقاسات المتاحة: ${product.availableSizes.join(', ')}` 
+//                 });
+//             }
+
+//             const itemPrice = product.price * (1 - product.discountPercentage / 100);
+//             totalAmount += itemPrice * item.quantity;
+//         }
+
+//         const order = new Order({
+//             customerInfo,
+//             items,
+//             amount: totalAmount,
+//             deliveryPrice
+//         });
+
+//         const savedOrder = await order.save();
+
+//         // Update product quantities
+//         for (const item of items) {
+//             await Product.findByIdAndUpdate(
+//                 item.product,
+//                 { $inc: { quantity: -item.quantity } }
+//             );
+//         }
+//         await savedOrder.populate('items.product');
+
+//         res.status(201).json(savedOrder);
+//     } catch (error) {
+//         console.error(error)
+//         res.status(400).json({ message: 'خطأ في إنشاء الطلب: ' + error.message });
+//     }
+// };
+
+// controllers/orderController.js - Update createOrder function
 exports.createOrder = async (req, res) => {
     try {
         const {
             customerInfo,
             items,
-            deliveryPrice
+            deliveryPrice = 0,
+            status = "pending",
+            notes = "",
+            isAdminOrder = true
         } = req.body;
 
-        console.log('body',req.body)
+        console.log('Admin creating order:', req.body)
 
-        if (!customerInfo || !items.length || !deliveryPrice) {
-            return res.json({ message: 'مطلوب معلومات العميل والعناصر' });
+        if (!items || !items.length) {
+            return res.status(400).json({ message: 'العناصر مطلوبة' });
         }
 
-        const { fullName, phone, state, city, deliveryType } = customerInfo;
-        if (!fullName || !phone || !state || !deliveryType) {
-            return res.json({ message: 'جميع حقول معلومات العميل مطلوبة' });
+        // For admin orders, customer info is optional
+        let customerData = {};
+        if (customerInfo) {
+            const { fullName = "", phone = "", state = "", city = "", deliveryType = "" } = customerInfo;
+            customerData = { fullName, phone, state, city, deliveryType };
         }
 
         let totalAmount = 0;
@@ -92,21 +170,21 @@ exports.createOrder = async (req, res) => {
             const product = await Product.findById(item.product);
             
             if (!product) {
-                return res.json({ message: `المنتج غير موجود: ${item.product}` });
+                return res.status(400).json({ message: `المنتج غير موجود: ${item.product}` });
             }
 
             if (!product.isActive) {
-                return res.json({ message: `المنتج غير متاح: ${product.title}` });
+                return res.status(400).json({ message: `المنتج غير متاح: ${product.title}` });
             }
 
             if (product.quantity < item.quantity) {
-                return res.json({ 
+                return res.status(400).json({ 
                     message: `الكمية غير كافية للمنتج: ${product.title}. المتاح: ${product.quantity}, المطلوب: ${item.quantity}` 
                 });
             }
 
             if (!product.availableSizes.includes(item.size)) {
-                return res.json({ 
+                return res.status(400).json({ 
                     message: `المقاس غير صالح للمنتج: ${product.title}. المقاسات المتاحة: ${product.availableSizes.join(', ')}` 
                 });
             }
@@ -116,10 +194,13 @@ exports.createOrder = async (req, res) => {
         }
 
         const order = new Order({
-            customerInfo,
+            customerInfo: customerData,
             items,
             amount: totalAmount,
-            deliveryPrice
+            deliveryPrice,
+            status,
+            notes,
+            isAdminOrder
         });
 
         const savedOrder = await order.save();
@@ -131,11 +212,12 @@ exports.createOrder = async (req, res) => {
                 { $inc: { quantity: -item.quantity } }
             );
         }
+
         await savedOrder.populate('items.product');
 
         res.status(201).json(savedOrder);
     } catch (error) {
-        console.error(error)
+        console.error('Error creating admin order:', error)
         res.status(400).json({ message: 'خطأ في إنشاء الطلب: ' + error.message });
     }
 };

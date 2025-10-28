@@ -10,22 +10,27 @@ const orderSchema = new mongoose.Schema(
       fullName: {
         type: String,
         trim: true,
+        default: ""
       },
       phone: {
         type: String,
         trim: true,
+        default: ""
       },
       state: {
         type: String,
         trim: true,
+        default: ""
       },
       city: {
         type: String,
         trim: true,
+        default: ""
       },
       deliveryType: {
         type: String,
-        enum: ["home", "office"],
+        enum: ["home", "office", ""],
+        default: ""
       },
     },
     items: [
@@ -54,7 +59,7 @@ const orderSchema = new mongoose.Schema(
     },
     deliveryPrice: {
       type: Number,
-      required: true,
+      default: 0,
       min: 0,
     },
     status: {
@@ -69,6 +74,14 @@ const orderSchema = new mongoose.Schema(
       ],
       default: "pending",
     },
+    isAdminOrder: {
+      type: Boolean,
+      default: true
+    },
+    notes: {
+      type: String,
+      default: ""
+    }
   },
   {
     timestamps: true,

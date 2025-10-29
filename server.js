@@ -20,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/testimonials', require('./routes/testimonials'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/pajama-store')

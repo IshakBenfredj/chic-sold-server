@@ -149,7 +149,7 @@ exports.createOrder = async (req, res) => {
             deliveryPrice = 0,
             status = "pending",
             notes = "",
-            isAdminOrder = true
+            isAdminOrder = false
         } = req.body;
 
         console.log('Admin creating order:', req.body)
